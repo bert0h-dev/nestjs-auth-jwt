@@ -1,11 +1,15 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Put, Req, UseGuards } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
+import { AuthGuard } from 'src/guards/auth.guard';
 
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ChangePasswordDto } from 'src/users/dto/change-pswd.dto';
+import { ForgotPasswordDto } from 'src/users/dto/forgot-pswd.dto';
+import { ResetPasswordDto } from 'src/users/dto/reset-pswd.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -42,5 +46,44 @@ export class AuthController {
   @Post('refresh')
   async refreshToken(@Body() refreshToken: RefreshTokenDto) {
     return this.authService.refreshToken(refreshToken);
+  }
+
+  /**
+   * Metodo para cambiar la contraseña
+   * @param body DTO de cambio de contraseña
+   * @description Cambia la contraseña del usuario
+   */
+  @UseGuards(AuthGuard)
+  @Put('change-password')
+  async changePassword(@Body() changePswd: ChangePasswordDto, @Req() req: any) {
+    const { oldPassword, newPassword } = changePswd;
+    return this.userService.changePassword(
+      req.user.userId,
+      oldPassword,
+      newPassword
+    );
+  }
+
+  /**
+   * Metodo para enviar un correo de recuperacion de contraseña
+   * @param body DTO de correo
+   * @description Envia un correo de recuperacion de contraseña
+   */
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPwsd: ForgotPasswordDto) {
+    return this.userService.forgotPassword(forgotPwsd.email);
+  }
+
+  /**
+   * Metodo para cambiar la contraseña
+   * @param body DTO de cambio de contraseña
+   * @description Cambia la contraseña del usuario
+   */
+  @Put('reset-password')
+  async resetPassword(@Body() resetPswd: ResetPasswordDto) {
+    return this.userService.resetPassword(
+      resetPswd.newPassword,
+      resetPswd.resetToken
+    );
   }
 }

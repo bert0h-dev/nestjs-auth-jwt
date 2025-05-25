@@ -65,7 +65,7 @@ export class AuthGuard implements CanActivate {
    */
   private extractPayload(payload): PayloadDto {
     return {
-      userId: payload['userId'],
+      userId: payload.userId,
     };
   }
 }

@@ -10,6 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Modelo que se utiliza para almacenar los usuarios
+// y sus credenciales de inicio de sesión
 model User {
   id Int @id @default(autoincrement())
   name String
@@ -19,6 +21,7 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+//Modelo que se utiliza para almacenar los tokens de acceso y refresco
 model RefreshToken {
   id Int @id @default(autoincrement())
   userId Int @unique
@@ -26,4 +29,13 @@ model RefreshToken {
   expirationDate DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Modelo que se utiliza para almacenar los tokens de restablecimiento de contraseña
+model ResetToken {
+  id Int @id @default(autoincrement())
+  userId Int @unique
+  token String @unique
+  expirationDate DateTime
+  createdAt DateTime @default(now())
 }

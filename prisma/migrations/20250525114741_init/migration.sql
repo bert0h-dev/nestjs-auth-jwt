@@ -18,6 +18,15 @@ CREATE TABLE "RefreshToken" (
     "updatedAt" DATETIME NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE "ResetToken" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "token" TEXT NOT NULL,
+    "expirationDate" DATETIME NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -26,3 +35,9 @@ CREATE UNIQUE INDEX "RefreshToken_userId_key" ON "RefreshToken"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_token_key" ON "RefreshToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ResetToken_userId_key" ON "ResetToken"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ResetToken_token_key" ON "ResetToken"("token");
