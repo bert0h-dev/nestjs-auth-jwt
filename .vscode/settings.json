@@ -1,0 +1,32 @@
+{
+  "material-icon-theme.files.associations": {
+    "*.module.ts": "nest",
+    "*.controller.ts": "nest-controller",
+    "*.service.ts": "nest-service",
+    "*.guard.ts": "nest-guard",
+    "*.config.ts": "settings",
+    "config.ts": "settings",
+    "*.dto.ts": "serverless",
+    "*.entity.ts": "scala"
+  },
+  "material-icon-theme.folders.customClones": [
+    {
+      "name": "users-folder",
+      "base": "admin",
+      "color": "#aa39d3",
+      "folderNames": ["users", "user"]
+    },
+    {
+      "name": "dto-folder",
+      "base": "element",
+      "color": "#d33943",
+      "folderNames": ["dto"]
+    },
+    {
+      "name": "entities-folder",
+      "base": "class",
+      "color": "#3981d3",
+      "folderNames": ["entity", "entities"]
+    }
+  ]
+}
