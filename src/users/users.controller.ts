@@ -6,19 +6,26 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+
 import { UsersService } from './users.service';
 import { Permissions } from 'src/decorators/permissions.decorator';
 import { PermissionsType } from 'src/enums/permissions-type.enum';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 
-@Controller('users')
+@ApiBearerAuth()
+@ApiTags('Users')
+@Controller({ path: 'users', version: '1' })
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Permissions(PermissionsType.USER_VIEW)
   @Get()
+  @HttpCode(HttpStatus.OK)
   async getAllUsers() {
     return this.usersService.getAllUsers();
   }
