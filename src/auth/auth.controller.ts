@@ -2,7 +2,6 @@ import { Controller, Post, Body, Put, Req, UseGuards } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
-import { AuthGuard } from 'src/guards/auth.guard';
 
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -10,6 +9,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from 'src/users/dto/change-pswd.dto';
 import { ForgotPasswordDto } from 'src/users/dto/forgot-pswd.dto';
 import { ResetPasswordDto } from 'src/users/dto/reset-pswd.dto';
+
+import { Public } from 'src/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -23,6 +24,7 @@ export class AuthController {
    * @param body DTO de usuario
    * @description Crea un nuevo usuario en la base de datos
    */
+  @Public()
   @Post('signup')
   async signUp(@Body() signupData: CreateUserDto) {
     return this.userService.createUser(signupData);
@@ -33,6 +35,7 @@ export class AuthController {
    * @param body DTO de login
    * @description Inicia sesion y genera un token de acceso y un refresh token
    */
+  @Public()
   @Post('login')
   async login(@Body() loginData: LoginDto) {
     return this.authService.login(loginData);
@@ -43,6 +46,7 @@ export class AuthController {
    * @param body DTO de refresh token
    * @description Refresca el token de acceso y genera un nuevo refresh token
    */
+  @Public()
   @Post('refresh')
   async refreshToken(@Body() refreshToken: RefreshTokenDto) {
     return this.authService.refreshToken(refreshToken);
@@ -53,7 +57,6 @@ export class AuthController {
    * @param body DTO de cambio de contraseña
    * @description Cambia la contraseña del usuario
    */
-  @UseGuards(AuthGuard)
   @Put('change-password')
   async changePassword(@Body() changePswd: ChangePasswordDto, @Req() req: any) {
     const { oldPassword, newPassword } = changePswd;
@@ -69,6 +72,7 @@ export class AuthController {
    * @param body DTO de correo
    * @description Envia un correo de recuperacion de contraseña
    */
+  @Public()
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPwsd: ForgotPasswordDto) {
     return this.userService.forgotPassword(forgotPwsd.email);
@@ -79,6 +83,7 @@ export class AuthController {
    * @param body DTO de cambio de contraseña
    * @description Cambia la contraseña del usuario
    */
+  @Public()
   @Put('reset-password')
   async resetPassword(@Body() resetPswd: ResetPasswordDto) {
     return this.userService.resetPassword(

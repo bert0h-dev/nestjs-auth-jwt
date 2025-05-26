@@ -8,6 +8,10 @@ import { AppService } from './app.service';
 import { SchemaModule } from './schema/schema.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { AuthenticationGuard } from './guards/authentication.guard';
+import { AuthorizationGuard } from './guards/authorization.guard';
 import envConfig from './config/config';
 
 @Module({
@@ -31,8 +35,10 @@ import envConfig from './config/config';
     SchemaModule,
     AuthModule,
     UsersModule,
+    RolesModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AuthenticationGuard, AuthorizationGuard],
 })
 export class AppModule {}

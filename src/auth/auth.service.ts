@@ -2,13 +2,13 @@ import * as bcrypt from 'bcrypt';
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
 
 import { SchemaService } from 'src/schema/schema.service';
 
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { PayloadDto } from './dto/payload.dto';
+import { GenerateTokenDto } from './dto/generate-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -27,23 +27,45 @@ export class AuthService {
     const { email, password } = loginData;
 
     // Validamos que el email exista
-    const userObj = await this.schemaService.user.findUnique({
+    const user = await this.schemaService.user.findUnique({
       where: {
         email: email,
       },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
-    if (!userObj) {
+
+    if (!user) {
       throw new UnauthorizedException('Wrong credentials');
     }
 
     // Validamos que la contraseña sea correcta
-    const isPasswordValid = await bcrypt.compare(password, userObj.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Wrong credentials');
     }
 
+    // Se genera el DTO que contiene el id, email y el rol del usuario
+    const userDto: GenerateTokenDto = {
+      id: user.id,
+      email: user.email,
+      role: {
+        id: user.role?.id,
+        name: user.role?.name,
+      },
+    };
+
     // Generamos un nuevo token de acceso y refresh token
-    return await this.generateUserToken(userObj);
+    return await this.generateUserToken(userDto);
   }
 
   /**
@@ -75,13 +97,34 @@ export class AuthService {
       where: {
         id: tokenObj.userId,
       },
+      select: {
+        id: true,
+        email: true,
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
+    // Se genera el DTO que contiene el id, email y el rol del usuario
+    const userDto: GenerateTokenDto = {
+      id: user.id,
+      email: user.email,
+      role: {
+        id: user.role?.id,
+        name: user.role?.name,
+      },
+    };
+
     // Generamos un nuevo token de acceso y refresh token
-    return await this.generateUserToken(user);
+    return await this.generateUserToken(userDto);
   }
 
   /**
@@ -90,16 +133,23 @@ export class AuthService {
    * @description Genera el token de acceso y el refresh token
    * @returns Objeto con el access token y el refresh token
    */
-  async generateUserToken(user: User) {
+  async generateUserToken(userDto: GenerateTokenDto) {
     // Generamos la constante para el payload del JWT
-    const payload: PayloadDto = { userId: user.id };
+    const payload: PayloadDto = {
+      userId: userDto.id,
+      email: userDto.email,
+      role: {
+        id: userDto.role?.id || 0,
+        name: userDto.role?.name || 'guest',
+      },
+    };
     // Obtenemos el access token
     const accessToken = this.jwtService.sign(payload);
     //Obtenemos el refresh token
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     // Antes de retornar el token, guardamos el refresh token en la base de datos
-    await this.storeRefreshToken(refreshToken, user.id);
+    await this.storeRefreshToken(refreshToken, userDto.id);
 
     // Retornamos el access token y el refresh token
     // El access token tiene una expiracion de 1 hora (config en el .env)

@@ -10,18 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo que se utiliza para almacenar los usuarios
-// y sus credenciales de inicio de sesión
-model User {
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  password String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-//Modelo que se utiliza para almacenar los tokens de acceso y refresco
+/*
+MODULE: AUTHENTICATION
+DESCRIPTION: This module is responsible for managing tokens for authentication and password reset.
+INCLUDES:
+  MODELS:
+    RefreshToken: Stores refresh tokens for user sessions.
+    ResetToken: Stores password reset tokens for users.
+  AUDIT FIELDS:
+    createdAt: Timestamp of when the token was created.
+    updatedAt: Timestamp of when the token was last updated.
+    expirationDate: Timestamp of when the token expires.
+*/
 model RefreshToken {
   id Int @id @default(autoincrement())
   userId Int @unique
@@ -31,11 +31,104 @@ model RefreshToken {
   updatedAt DateTime @updatedAt
 }
 
-// Modelo que se utiliza para almacenar los tokens de restablecimiento de contraseña
 model ResetToken {
   id Int @id @default(autoincrement())
   userId Int @unique
   token String @unique
   expirationDate DateTime
   createdAt DateTime @default(now())
+}
+
+/*
+MODULE: USER
+DESCRIPTION: This module is responsible for managing user information.
+INCLUDES:
+  MODELS: 
+    User: Stores user information such as name, email, and password.
+    Role: Stores role information for users.
+    Permission: Stores permission information for roles and users.
+    RolePermission: Stores the relationship between roles and permissions.
+    UserPermission: Stores the relationship between users and permissions.
+  AUDIT FIELDS:
+    createdAt: Timestamp of when the user was created.
+    updatedAt: Timestamp of when the user was last updated.
+    isActive: Boolean field to indicate if the user is active.
+    isSystemRole: Boolean field to indicate if the role is a system role.
+  RELATIONSHIPS: 
+    User to Role (one-to-many)
+    Role to Permission (many-to-many)
+    User to Permission (many-to-many)
+    User to UserPermission (one-to-many)
+    Role to RolePermission (one-to-many)
+    Permission to RolePermission (one-to-many)
+    Permission to UserPermission (one-to-many)
+*/
+model User {
+  // User information
+  id Int @id @default(autoincrement())
+  name String
+  email String @unique
+  password String
+  isActive Boolean @default(true)
+  roleId Int?
+
+  // Relationships
+  userPermissions UserPermission[] @relation("UserPermission")
+  role Role? @relation(fields:[roleId], references:[id], name: "UserRole", onDelete: NoAction, onUpdate: NoAction)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  // Role information
+  id Int @id @default(autoincrement())
+  name String @unique
+  description String?
+  IsSystemRole Boolean @default(false)
+
+  // Relationships
+  rolePermissions RolePermission[] @relation("RolePermission")
+  users User[] @relation("UserRole")
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Permission {
+  // Permission information
+  id Int @id @default(autoincrement())
+  module String
+  action String
+  description String?
+
+  // Relationships
+  rolePermissions RolePermission[] @relation("RoleAssignPermission")
+  userPermissions UserPermission[] @relation("UserAssignPermission")
+
+  @@unique([module, action], name: "module_action")
+}
+
+model RolePermission {
+  roleId Int
+  permissionId Int
+
+  // Relationships
+  role Role @relation(fields: [roleId], references: [id], name: "RolePermission", onDelete: Cascade, onUpdate: NoAction)
+  permission Permission @relation(fields: [permissionId], references: [id], name: "RoleAssignPermission")
+
+  @@id([roleId, permissionId])
+}
+
+model UserPermission {
+  userId Int
+  permissionId Int
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], name: "UserPermission", onDelete: Cascade, onUpdate: NoAction)
+  permission Permission @relation(fields: [permissionId], references: [id], name: "UserAssignPermission")
+
+  @@id([userId, permissionId])
 }

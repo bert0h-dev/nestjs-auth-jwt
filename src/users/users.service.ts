@@ -7,6 +7,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 
 import * as bcrypt from 'bcrypt';
 import { nanoid } from 'nanoid';
+import { AssignRoleDto } from './dto/assign-role.dto';
+import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 
 @Injectable()
 export class UsersService {
@@ -15,9 +17,102 @@ export class UsersService {
     private mailService: MailService
   ) {}
 
+  basicUserSelect = {
+    id: true,
+    name: true,
+    email: true,
+    isActive: true,
+  };
+
+  basicPermissionSelect = {
+    id: true,
+    module: true,
+    action: true,
+    description: true,
+  };
+
+  /**
+   * Metodo para obtener todos los usuarios
+   * @returns Un array de objetos que representan los usuarios disponibles en la base de datos.
+   * @description Obtiene todos los usuarios existentes en la base de datos.
+   * @throws BadRequestException si no se encuentran usuarios
+   */
+  async getAllUsers() {
+    // Obtenemos todos los usuarios de la base de datos
+    const users = await this.schemaService.user.findMany({
+      select: {
+        ...this.basicUserSelect,
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    // Si no se encuentran usuarios, lanzamos una excepción
+    if (!users || users.length === 0) {
+      throw new BadRequestException('No users found');
+    }
+
+    return users;
+  }
+
+  /**
+   * Metodo para obtener un usuario por su ID
+   * @param userId ID del usuario a buscar
+   * @returns Un objeto que representa el usuario encontrado.
+   * @description Obtiene un usuario específico de la base de datos utilizando su ID.
+   * @throws BadRequestException si no se encuentra el usuario
+   */
+  async getUserById(userId: number) {
+    //Se busca el usuario por su ID
+    const userObj = await this.schemaService.user.findUnique({
+      where: { id: userId },
+      select: {
+        ...this.basicUserSelect,
+        role: {
+          select: {
+            id: true,
+            name: true,
+            rolePermissions: {
+              select: {
+                permission: {
+                  select: {
+                    ...this.basicPermissionSelect,
+                  },
+                },
+              },
+            },
+          },
+        },
+        userPermissions: {
+          select: {
+            permission: {
+              select: {
+                ...this.basicPermissionSelect,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Si no se encuentra el usuario, lanzamos una excepción
+    if (!userObj) {
+      throw new BadRequestException('User not found');
+    }
+
+    return userObj;
+  }
+
   /**
    * Metodo para crear un nuevo usuario
-   * @param body DTO de usuario
+   * @param createData Contiene los datos del usuario a crear
    * @description Crea un nuevo usuario en la base de datos
    * @throws BadRequestException si el email ya existe
    */
@@ -27,7 +122,7 @@ export class UsersService {
     // Validamos que el email no exista
     const emailisExist = await this.schemaService.user.findUnique({
       where: {
-        email: createData.email,
+        email: email,
       },
     });
     if (emailisExist) {
@@ -44,6 +139,100 @@ export class UsersService {
         email,
         password: hashedPassword,
       },
+    });
+  }
+
+  /**
+   * Metodo para asignar un rol a un usuario
+   * @param bodyDto Contiene el ID del usuario y el ID del rol a asignar
+   * @description Asigna un rol a un usuario en la base de datos
+   * @throws BadRequestException si el usuario o el rol no existen
+   */
+  async assignRoleToUser(bodyDto: AssignRoleDto) {
+    const { userId, roleId } = bodyDto;
+
+    // Validamos que el usuario exista
+    const userObj = await this.schemaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!userObj) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Validamos que el rol exista
+    const roleObj = await this.schemaService.role.findUnique({
+      where: {
+        id: roleId,
+      },
+    });
+    if (!roleObj) {
+      throw new BadRequestException('Role not found');
+    }
+
+    // Asignamos el rol al usuario
+    await this.schemaService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        role: {
+          connect: {
+            id: roleId,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Metodo para asignar permisos a un usuario
+   * @param bodyDto Contiene el ID del usuario y los IDs de los permisos a asignar
+   * @description Asigna permisos a un usuario en la base de datos
+   * @throws BadRequestException si el usuario o los permisos no existen
+   */
+  async assignPermissionsToUser(bodyDto: AssignPermissionsDto) {
+    const { userId, permissionIds } = bodyDto;
+
+    // Validamos que el usuario exista
+    const userObj = await this.schemaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!userObj) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Validamos que los permisos existan
+    const permissions = await this.schemaService.permission.findMany({
+      where: {
+        id: {
+          in: permissionIds,
+        },
+      },
+    });
+    if (!permissions || permissions.length === 0) {
+      throw new BadRequestException('Permissions not found');
+    }
+
+    // Limpiamos los permisos actuales y volvemos a asignar los nuevos
+    await this.schemaService.userPermission.deleteMany({
+      where: {
+        userId: userId,
+      },
+    });
+
+    // Insertamos los nuevos permiosos
+    const assignments = permissionIds.map((permissionId) => ({
+      userId,
+      permissionId,
+    }));
+
+    // Asignamos los permisos al usuario
+    await this.schemaService.userPermission.createMany({
+      data: assignments,
     });
   }
 

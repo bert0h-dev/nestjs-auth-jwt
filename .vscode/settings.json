@@ -17,6 +17,18 @@
       "folderNames": ["users", "user"]
     },
     {
+      "name": "roles-folder",
+      "base": "admin",
+      "color": "#afd339",
+      "folderNames": ["role", "roles"]
+    },
+    {
+      "name": "permissions-folder",
+      "base": "admin",
+      "color": "#d35d39",
+      "folderNames": ["permission", "permissions"]
+    },
+    {
       "name": "dto-folder",
       "base": "element",
       "color": "#d33943",

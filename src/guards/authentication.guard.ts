@@ -5,18 +5,35 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
 import { PayloadDto } from 'src/auth/dto/payload.dto';
+import { IS_PUBLIC_KEY } from 'src/decorators/public.decorator';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+export class AuthenticationGuard implements CanActivate {
+  constructor(
+    private jwtService: JwtService,
+    private reflector: Reflector
+  ) {}
 
   canActivate(
     context: ExecutionContext
   ): boolean | Promise<boolean> | Observable<boolean> {
+    // Validamos si el endpoint es publico
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // Si el endpoint es publico, no se requiere autenticacion
+    if (isPublic) {
+      Logger.log('Endpoint publico, no se requiere autenticacion');
+      return true;
+    }
+
     // Obtener el request de la peticion
     const request: Request = context.switchToHttp().getRequest();
     // Obtener el token de la peticion
@@ -66,6 +83,11 @@ export class AuthGuard implements CanActivate {
   private extractPayload(payload): PayloadDto {
     return {
       userId: payload.userId,
+      email: payload.email,
+      role: {
+        id: payload.role?.id || 0,
+        name: payload.role?.name || 'guest',
+      },
     };
   }
 }
